@@ -1,5 +1,12 @@
-netmiko>=4.3.0
-napalm>=5.0.0
+# Core
 requests>=2.31.0
-ansible>=9.0.0
-ansible-pylibssh>=1.1.0
+
+# Netmiko
+netmiko>=4.3.0
+
+# Napalm
+napalm>=5.0.0
+
+# Ansible — instalar separadamente se necessário
+# pip install ansible ansible-pylibssh
+# ansible-galaxy collection install cisco.ios
