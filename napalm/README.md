@@ -3,7 +3,6 @@
 Retrieve structured data from network devices using [Napalm](https://napalm.readthedocs.io/), with credentials fetched dynamically from the Vault API.
 
 ## Usage
-
 ```bash
 # Get facts from all devices
 python3 get_facts.py
