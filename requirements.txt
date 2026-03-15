@@ -7,6 +7,6 @@ netmiko>=4.3.0
 # Napalm
 napalm>=5.0.0
 
-# Ansible — instalar separadamente se necessário
-# pip install ansible ansible-pylibssh
+# Ansible — install separately
+# pip install --user ansible
 # ansible-galaxy collection install cisco.ios
