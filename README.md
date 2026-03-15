@@ -77,7 +77,7 @@ network-automation/
 │   └── vault_client.py     # Shared Vault API client
 ├── netmiko/
 │   ├── README.md
-│   ├── connect_routers.py
+│   ├── connect_devices.py
 │   └── examples/
 ├── ansible/
 │   ├── README.md
