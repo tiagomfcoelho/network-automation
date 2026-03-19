@@ -4,9 +4,27 @@
 # Set these as environment variables or in ansible-vault
 
 # Vault API
-vault_api_url: "{{ lookup('env', 'VAULT_API_URL') | default('https://vault-api.oteualiado.pt') }}"
 vault_token: "{{ lookup('env', 'VAULT_TOKEN') }}"
+vault_api_url: "{{ lookup('env', 'VAULT_API_URL') | default('https://vault-api.oteualiado.pt') }}"
 
 # Netbox
-netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('https://netbox.oteualiado.pt') }}"
 netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') }}"
+netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('https://netbox.oteualiado.pt') }}"
+
+# Provisioning defaults (shared with provision_devices.yml)
+provision_defaults:
+  ssh_port: 22
+  mgmt_interface: Management0
+  interface_type: 1000base-t
+  mgmt_only: true
+  ip_prefix: 32
+  status: active
+  user_agent: "Mozilla/5.0"
+
+# Role colors for Netbox
+role_colors:
+  router: aa1409
+  switch: 2196f3
+  firewall: ff5722
+  server: 4caf50
+  default: 2196f3

@@ -7,6 +7,9 @@ netmiko>=4.3.0
 # Napalm
 napalm>=5.0.0
 
+# Netbox (for Ansible netbox_collection)
+pynetbox>=7.0.0
+
 # Ansible — install separately
 # pip install --user ansible
-# ansible-galaxy collection install cisco.ios
+# ansible-galaxy collection install netbox.netbox cisco.ios

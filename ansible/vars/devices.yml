@@ -3,8 +3,18 @@
 # Define all devices to be provisioned in Vaultwarden and Netbox
 # Usage: ansible-playbook ansible/playbooks/provision_devices.yml -e @ansible/vars/devices.yml
 
-devices:
+# YAML anchors for common configurations
+vaultlab_common: &vaultlab_common
+  site: VaultLab
+  site_slug: vaultlab
+  username: admin
+  password: autonetops
+  device_type: ceos-lab
+  manufacturer: Arista
+  manufacturer_slug: arista
 
+devices:
+  # DevNetSandboxLab - unique device
   - name: xrd-1
     site: DevNetSandboxLab
     site_slug: devnetsandboxlab
@@ -19,58 +29,36 @@ devices:
     vault_folder: DevNetSandboxLab/Routers
     groups: routers,iosxr
 
+  # VaultLab - Routers (share common config)
   - name: r1
-    site: VaultLab
-    site_slug: vaultlab
+    <<: *vaultlab_common
     role: router
     role_slug: router
-    device_type: ceos-lab
-    manufacturer: Arista
-    manufacturer_slug: arista
     ip: 172.20.20.11
-    username: admin
-    password: autonetops
     vault_folder: VaultLab/Routers
     groups: routers,core
 
   - name: r2
-    site: VaultLab
-    site_slug: vaultlab
+    <<: *vaultlab_common
     role: router
     role_slug: router
-    device_type: ceos-lab
-    manufacturer: Arista
-    manufacturer_slug: arista
     ip: 172.20.20.12
-    username: admin
-    password: autonetops
     vault_folder: VaultLab/Routers
     groups: routers,core
 
+  # VaultLab - Switches (share common config)
   - name: sw1
-    site: VaultLab
-    site_slug: vaultlab
+    <<: *vaultlab_common
     role: switch
     role_slug: switch
-    device_type: ceos-lab
-    manufacturer: Arista
-    manufacturer_slug: arista
     ip: 172.20.20.21
-    username: admin
-    password: autonetops
     vault_folder: VaultLab/Switches
     groups: switches,access
 
   - name: sw2
-    site: VaultLab
-    site_slug: vaultlab
+    <<: *vaultlab_common
     role: switch
     role_slug: switch
-    device_type: ceos-lab
-    manufacturer: Arista
-    manufacturer_slug: arista
     ip: 172.20.20.22
-    username: admin
-    password: autonetops
     vault_folder: VaultLab/Switches
     groups: switches,access

@@ -1,20 +1,10 @@
----
-# provision_devices.yml
-# Provisions devices in both Vaultwarden and Netbox
-#
-# Usage:
-#   export VAULT_TOKEN=your_token
-#   export NETBOX_TOKEN=your_token
-#   ansible-playbook ansible/playbooks/provision_devices.yml -e @ansible/vars/devices.yml
-#
-# Provision a single device:
-#   ansible-playbook ansible/playbooks/provision_devices.yml \
-#     -e @ansible/vars/devices.yml \
-#     -e "target_device=xrd-1"
-
-- name: Provision Devices in Vaultwarden and Netbox
+- name: Provision Devices in Vaultwarden and NetBox
   hosts: localhost
+  connection: local
   gather_facts: false
+
+  vars_files:
+    - "{{ playbook_dir }}/../group_vars/all.yml"
 
   vars:
     target_device: "all"
@@ -22,21 +12,60 @@
   tasks:
 
     # -------------------------------------------------------------------------
-    # Vaultwarden
+    # VALIDATION
+    # -------------------------------------------------------------------------
+
+    - name: Validate devices structure
+      assert:
+        that:
+          - devices is defined
+          - devices | length > 0
+
+    - name: Validate required fields
+      assert:
+        that:
+          - item.name is defined
+          - item.ip is defined
+          - item.site is defined
+          - item.site_slug is defined
+          - item.role_slug is defined
+          - item.device_type is defined
+          - item.manufacturer_slug is defined
+          - item.username is defined
+          - item.password is defined
+          - item.vault_folder is defined
+      loop: "{{ devices }}"
+      when: target_device == 'all' or item.name == target_device
+
+    # -------------------------------------------------------------------------
+    # FILTER DEVICES (IMPORTANT)
+    # -------------------------------------------------------------------------
+
+    - name: Build filtered device list
+      set_fact:
+        filtered_devices: >-
+          {{ devices if target_device == 'all'
+             else devices | selectattr('name', 'equalto', target_device) | list }}
+
+    - name: Fail if no devices match
+      fail:
+        msg: "No devices found for target_device={{ target_device }}"
+      when: filtered_devices | length == 0
+
+    # -------------------------------------------------------------------------
+    # VAULTWARDEN
     # -------------------------------------------------------------------------
 
     - name: Get Vault folders
-      ansible.builtin.uri:
+      uri:
         url: "{{ vault_api_url }}/vault/folders"
         method: GET
         headers:
           x-api-key: "{{ vault_token }}"
-          User-Agent: "Mozilla/5.0"
-        return_content: true
       register: vault_folders
 
-    - name: Create item in Vaultwarden
-      ansible.builtin.uri:
+    - name: Create Vault items (idempotent)
+      uri:
         url: "{{ vault_api_url }}/vault/item"
         method: POST
         headers:
@@ -48,55 +77,35 @@
           username: "{{ item.username }}"
           password: "{{ item.password }}"
           uri: "ssh://{{ item.ip }}"
-          folder_id: "{{ (vault_folders.json.folders | selectattr('name', 'equalto', item.vault_folder) | list | first).id }}"
+          folder_id: "{{ (vault_folders.json.folders
+                          | selectattr('name', 'equalto', item.vault_folder)
+                          | first).id }}"
           fields:
-            - name: ip
-              value: "{{ item.ip }}"
-            - name: port
-              value: "22"
-            - name: device_type
-              value: "{{ item.device_type }}"
-            - name: groups
-              value: "{{ item.groups }}"
-            - name: site
-              value: "{{ item.site }}"
-        status_code: [200, 201]
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
+            - { name: ip, value: "{{ item.ip | string }}" }
+            - { name: port, value: "{{ (item.ssh_port | default(22)) | string }}" }
+            - { name: device_type, value: "{{ item.device_type | string }}" }
+            - { name: site, value: "{{ item.site | string }}" }
+      loop: "{{ filtered_devices }}"
       register: vault_results
-      ignore_errors: true
-
-    - name: Vault provisioning summary
-      ansible.builtin.debug:
-        msg: "{{ item.item.name }}: {{ 'OK' if item.status in [200, 201] else 'FAILED' }}"
-      loop: "{{ vault_results.results }}"
-      when: 
-        - vault_results.results is defined
-        - not item.skipped | default(false)
+      failed_when: vault_results.status not in [200, 201, 409]  # 409 = already exists
 
     # -------------------------------------------------------------------------
-    # Netbox — Sites
+    # NETBOX — BASE OBJECTS
     # -------------------------------------------------------------------------
 
-    - name: Create sites in Netbox
+    - name: Ensure sites
       netbox.netbox.netbox_site:
         netbox_url: "{{ netbox_url }}"
         netbox_token: "{{ netbox_token }}"
         data:
           name: "{{ item.site }}"
           slug: "{{ item.site_slug }}"
-          status: active
         state: present
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
+      loop: "{{ filtered_devices }}"
       loop_control:
         label: "{{ item.site }}"
 
-    # -------------------------------------------------------------------------
-    # Netbox — Manufacturers
-    # -------------------------------------------------------------------------
-
-    - name: Create manufacturers in Netbox
+    - name: Ensure manufacturers
       netbox.netbox.netbox_manufacturer:
         netbox_url: "{{ netbox_url }}"
         netbox_token: "{{ netbox_token }}"
@@ -104,16 +113,9 @@
           name: "{{ item.manufacturer }}"
           slug: "{{ item.manufacturer_slug }}"
         state: present
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
-      loop_control:
-        label: "{{ item.manufacturer }}"
+      loop: "{{ filtered_devices }}"
 
-    # -------------------------------------------------------------------------
-    # Netbox — Device Types
-    # -------------------------------------------------------------------------
-
-    - name: Create device types in Netbox
+    - name: Ensure device types
       netbox.netbox.netbox_device_type:
         netbox_url: "{{ netbox_url }}"
         netbox_token: "{{ netbox_token }}"
@@ -123,34 +125,24 @@
           model: "{{ item.device_type }}"
           slug: "{{ item.device_type }}"
         state: present
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
-      loop_control:
-        label: "{{ item.device_type }}"
+      loop: "{{ filtered_devices }}"
 
-    # -------------------------------------------------------------------------
-    # Netbox — Device Roles
-    # -------------------------------------------------------------------------
-
-    - name: Create device roles in Netbox
+    - name: Ensure roles
       netbox.netbox.netbox_device_role:
         netbox_url: "{{ netbox_url }}"
         netbox_token: "{{ netbox_token }}"
         data:
           name: "{{ item.role | capitalize }}"
           slug: "{{ item.role_slug }}"
-          color: "{{ 'aa1409' if item.role == 'router' else '2196f3' }}"
+          color: "{{ role_colors[item.role] | default(role_colors['default']) }}"
         state: present
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
-      loop_control:
-        label: "{{ item.role }}"
+      loop: "{{ filtered_devices }}"
 
     # -------------------------------------------------------------------------
-    # Netbox — Devices
+    # NETBOX — DEVICES
     # -------------------------------------------------------------------------
 
-    - name: Create devices in Netbox
+    - name: Ensure devices
       netbox.netbox.netbox_device:
         netbox_url: "{{ netbox_url }}"
         netbox_token: "{{ netbox_token }}"
@@ -162,68 +154,72 @@
             slug: "{{ item.role_slug }}"
           site:
             name: "{{ item.site }}"
-          status: active
         state: present
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
-      register: netbox_devices
+      loop: "{{ filtered_devices }}"
 
     # -------------------------------------------------------------------------
-    # Netbox — Interfaces e IPs
+    # INTERFACES
     # -------------------------------------------------------------------------
 
-    - name: Create management interfaces
+    - name: Ensure management interface
       netbox.netbox.netbox_device_interface:
         netbox_url: "{{ netbox_url }}"
         netbox_token: "{{ netbox_token }}"
         data:
           device:
             name: "{{ item.name }}"
-          name: Management0
-          type: 1000base-t
+          name: "{{ item.mgmt_interface | default('Management0') }}"
+          type: "{{ item.interface_type | default('1000base-t') }}"
           mgmt_only: true
         state: present
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
+      loop: "{{ filtered_devices }}"
 
-    - name: Create IP addresses
+    # -------------------------------------------------------------------------
+    # IPs (IDEMPOTENTE)
+    # -------------------------------------------------------------------------
+
+    - name: Check if IP exists
+      uri:
+        url: "{{ netbox_url }}/api/ipam/ip-addresses/?address={{ item.ip }}"
+        method: GET
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+      loop: "{{ filtered_devices }}"
+      register: ip_check
+
+    - name: Create IP if missing
       netbox.netbox.netbox_ip_address:
         netbox_url: "{{ netbox_url }}"
         netbox_token: "{{ netbox_token }}"
         data:
-          address: "{{ item.ip }}/32"
-          status: active
+          address: "{{ item.item.ip }}/{{ item.item.ip_prefix | default(32) }}"
           assigned_object:
-            device:
-              name: "{{ item.name }}"
-            name: Management0
+            device: "{{ item.item.name }}"
+            name: "{{ item.item.mgmt_interface | default('Management0') }}"
         state: present
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
-      register: netbox_ips
+      loop: "{{ ip_check.results }}"
+      when: item.json.count == 0
 
-    - name: Set primary IP on devices
+    # -------------------------------------------------------------------------
+    # PRIMARY IP
+    # -------------------------------------------------------------------------
+
+    - name: Set primary IP (robust)
       netbox.netbox.netbox_device:
         netbox_url: "{{ netbox_url }}"
         netbox_token: "{{ netbox_token }}"
         data:
           name: "{{ item.item.name }}"
-          primary_ip4:
-            address: "{{ item.item.ip }}/32"
+          primary_ip4: "{{ item.json.results[0].id }}"
         state: present
-      loop: "{{ netbox_ips.results }}"
-      when:
-        - netbox_ips.results is defined
-        - target_device == 'all' or item.item.name == target_device
-      loop_control:
-        label: "{{ item.item.name }}"
+      loop: "{{ ip_check.results }}"
+      when: item.json.count > 0
 
     # -------------------------------------------------------------------------
-    # Summary
+    # SUMMARY
     # -------------------------------------------------------------------------
 
-    - name: Provisioning complete
-      ansible.builtin.debug:
-        msg: "✓ {{ item.name }} provisioned in Vaultwarden and Netbox"
-      loop: "{{ devices }}"
-      when: target_device == 'all' or item.name == target_device
+    - name: Summary
+      debug:
+        msg: "✓ {{ item.name }} provisioned successfully"
+      loop: "{{ filtered_devices }}"
