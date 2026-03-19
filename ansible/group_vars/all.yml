@@ -1,0 +1,12 @@
+---
+# group_vars/all.yml
+# Global variables for all playbooks
+# Set these as environment variables or in ansible-vault
+
+# Vault API
+vault_api_url: "{{ lookup('env', 'VAULT_API_URL') | default('https://vault-api.oteualiado.pt') }}"
+vault_token: "{{ lookup('env', 'VAULT_TOKEN') }}"
+
+# Netbox
+netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('https://netbox.oteualiado.pt') }}"
+netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') }}"

@@ -1,0 +1,76 @@
+---
+# devices.yml
+# Define all devices to be provisioned in Vaultwarden and Netbox
+# Usage: ansible-playbook ansible/playbooks/provision_devices.yml -e @ansible/vars/devices.yml
+
+devices:
+
+  - name: xrd-1
+    site: DevNetSandboxLab
+    site_slug: devnetsandboxlab
+    role: router
+    role_slug: router
+    device_type: ios-xr
+    manufacturer: Cisco
+    manufacturer_slug: cisco
+    ip: 131.226.217.150
+    username: tiagocoelho17
+    password: el-54_bI7zIL
+    vault_folder: DevNetSandboxLab/Routers
+    groups: routers,iosxr
+
+  - name: r1
+    site: VaultLab
+    site_slug: vaultlab
+    role: router
+    role_slug: router
+    device_type: ceos-lab
+    manufacturer: Arista
+    manufacturer_slug: arista
+    ip: 172.20.20.11
+    username: admin
+    password: autonetops
+    vault_folder: VaultLab/Routers
+    groups: routers,core
+
+  - name: r2
+    site: VaultLab
+    site_slug: vaultlab
+    role: router
+    role_slug: router
+    device_type: ceos-lab
+    manufacturer: Arista
+    manufacturer_slug: arista
+    ip: 172.20.20.12
+    username: admin
+    password: autonetops
+    vault_folder: VaultLab/Routers
+    groups: routers,core
+
+  - name: sw1
+    site: VaultLab
+    site_slug: vaultlab
+    role: switch
+    role_slug: switch
+    device_type: ceos-lab
+    manufacturer: Arista
+    manufacturer_slug: arista
+    ip: 172.20.20.21
+    username: admin
+    password: autonetops
+    vault_folder: VaultLab/Switches
+    groups: switches,access
+
+  - name: sw2
+    site: VaultLab
+    site_slug: vaultlab
+    role: switch
+    role_slug: switch
+    device_type: ceos-lab
+    manufacturer: Arista
+    manufacturer_slug: arista
+    ip: 172.20.20.22
+    username: admin
+    password: autonetops
+    vault_folder: VaultLab/Switches
+    groups: switches,access
