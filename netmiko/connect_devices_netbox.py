@@ -91,7 +91,7 @@ def main():
         description="Connect to devices using Netbox inventory + Vaultwarden credentials"
     )
     parser.add_argument("--site",    default=None,                      help="Filter by site slug (e.g. vaultlab)")
-    parser.add_argument("--role",    default=None,                      help="Filter by role slug (e.g. router, switch)")
+    parser.add_argument("--role",    default="router",                      help="Filter by role slug (e.g. router, switch)")
     parser.add_argument("--command", default="show ip interface brief", help="Command to run on each device")
     parser.add_argument("--port",    default=22, type=int,              help="SSH port (default: 22)")
     args = parser.parse_args()
@@ -102,7 +102,7 @@ def main():
 
     # Get devices from Netbox
     print(f"Fetching devices from Netbox (site={args.site}, role={args.role})...")
-    devices = netbox.get_devices(site=args.site, role=args.role)
+    devices = netbox.get_devices(site=args.site.lower(), role=args.role.lower())
 
     if not devices:
         print("No devices found in Netbox.")

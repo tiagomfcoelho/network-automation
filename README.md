@@ -114,12 +114,10 @@ Connect to devices and run commands via SSH.
 python3 netmiko/connect_devices.py --site VaultLab --group routers
 
 # Using Netbox as inventory + Vault for credentials
-python3 netmiko/connect_devices_netbox.py --site vaultlab --role router
+python3 netmiko/connect_devices_netbox.py --site VaultLab --role Router
 
 # Custom command
-python3 netmiko/connect_devices_netbox.py \
-  --site devnetsandboxlab \
-  --command "show ip interface brief"
+python3 netmiko/connect_devices_netbox.py --site devnetsandboxlab --role router --command "show ip interface brief"
 ```
 
 **Example output:**
