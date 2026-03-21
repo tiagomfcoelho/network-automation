@@ -4,7 +4,7 @@
 #
 # Usage:
 #   ansible-playbook ansible/playbooks/collect_version.yml \
-#     -i ansible/inventory/vault_inventory.py \
+#     -i ansible/inventory/hcvault_inventory.py \
 #     --limit routers
 #
 # Output: reports/version_<hostname>_<date>.txt

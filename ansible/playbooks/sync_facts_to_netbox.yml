@@ -9,11 +9,11 @@
 #
 # Usage:
 #   ansible-playbook ansible/playbooks/sync_facts_to_netbox.yml \
-#     -i ansible/inventory/vault_inventory.py
+#     -i ansible/inventory/hcvault_inventory.py
 #
 #   # Sync specific group
 #   ansible-playbook ansible/playbooks/sync_facts_to_netbox.yml \
-#     -i ansible/inventory/vault_inventory.py \
+#     -i ansible/inventory/hcvault_inventory.py \
 #     --limit routers
 
 - name: Sync Device Facts to Netbox

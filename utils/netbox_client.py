@@ -77,17 +77,13 @@ class NetboxClient:
             primary_ip = d.get("primary_ip")
             ip = primary_ip["address"].split("/")[0] if primary_ip else None
 
-            # Get vault_item_id from custom fields if available
-            custom_fields = d.get("custom_fields", {})
-
             devices.append({
-                "name":          d.get("name"),
-                "ip":            ip,
-                "role":          d.get("role", {}).get("slug"),
-                "device_type":   d.get("device_type", {}).get("slug"),
-                "site":          d.get("site", {}).get("slug"),
-                "status":        d.get("status", {}).get("value"),
-                "vault_item_id": custom_fields.get("vault_item_id"),
+                "name":        d.get("name"),
+                "ip":          ip,
+                "role":        d.get("role", {}).get("slug"),
+                "device_type": d.get("device_type", {}).get("slug"),
+                "site":        d.get("site", {}).get("slug"),
+                "status":      d.get("status", {}).get("value"),
             })
 
         return devices

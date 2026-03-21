@@ -2,12 +2,16 @@
 # configure_interfaces.yml
 # Configures interfaces on network devices
 #
+# Interface vars are loaded automatically from:
+#   ansible/vars/interfaces/<hostname>.yml
+#
 # Usage:
 #   ansible-playbook ansible/playbooks/configure_interfaces.yml \
-#     -i ansible/inventory/vault_inventory.py \
-#     -e @ansible/vars/interfaces.yml
+#     -i ansible/inventory/hcvault_inventory.py \
+#     --limit xrd-1
 #
-# Requires: ansible/vars/interfaces.yml with interface definitions
+# To add a new device, create:
+#   ansible/vars/interfaces/<device_name>.yml
 
 - name: Configure Interfaces
   hosts: all

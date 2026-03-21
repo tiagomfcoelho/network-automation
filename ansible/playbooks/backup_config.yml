@@ -4,11 +4,11 @@
 #
 # Usage:
 #   ansible-playbook ansible/playbooks/backup_config.yml \
-#     -i ansible/inventory/vault_inventory.py
+#     -i ansible/inventory/hcvault_inventory.py
 #
 #   # Backup specific group
 #   ansible-playbook ansible/playbooks/backup_config.yml \
-#     -i ansible/inventory/vault_inventory.py \
+#     -i ansible/inventory/hcvault_inventory.py \
 #     --limit routers
 #
 # Output: backups/<hostname>/<hostname>_<date>.cfg

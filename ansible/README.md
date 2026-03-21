@@ -84,10 +84,26 @@ ansible-playbook ansible/playbooks/backup_config.yml \
 
 ### Configure interfaces
 
+Interface vars are loaded automatically per host from `ansible/vars/interfaces/<hostname>.yml`.
+
 ```bash
+# Create interface vars for a device
+cat > ansible/vars/interfaces/xrd-1.yml << 'EOF'
+host_interfaces:
+  - name: GigabitEthernet0/0/0/0
+    description: "Link to xrd-2"
+    enabled: true
+
+host_l3_interfaces:
+  - name: GigabitEthernet0/0/0/0
+    ipv4:
+      - address: 10.0.0.1/30
+EOF
+
+# Run the playbook
 ansible-playbook ansible/playbooks/configure_interfaces.yml \
   -i inventory/hcvault_inventory.py \
-  -e @ansible/vars/interfaces.yml
+  --limit xrd-1
 ```
 
 ### Sync facts to Netbox
@@ -118,6 +134,7 @@ ansible/
 ├── vars/
 │   ├── devices.yml                   # Device inventory
 │   ├── secrets.yml                   # Encrypted credentials (ansible-vault)
-│   └── interfaces.yml                # Interface configuration
+│   └── interfaces/                   # Interface vars per device
+│       └── <hostname>.yml            # e.g. xrd-1.yml
 └── README.md
 ```
