@@ -143,7 +143,7 @@
         data:
           name: "{{ inventory_hostname }}"
           platform:
-            name: "{{ device_version }}"
+            slug: "{{ device_version | lower | regex_replace('[^a-z0-9]+', '-') | truncate(50, true, '') }}"
         state: present
       delegate_to: localhost
       when: device_version is defined and device_version != ''
