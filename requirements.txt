@@ -10,9 +10,9 @@ napalm>=5.0.0
 # Ansible + Netbox collection dependencies
 pynetbox>=7.3.0
 
-# Ansible — install separately:
-# pip install ansible
-# ansible-galaxy collection install netbox.netbox
-
 # Ansible SSH (required for network_cli connection)
 ansible-pylibssh>=1.1.0
+
+# Ansible — install separately:
+# pip install ansible
+# ansible-galaxy collection install -r ansible/requirements.yml

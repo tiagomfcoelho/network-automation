@@ -2,12 +2,14 @@
 Napalm — Get Device Facts
 --------------------------
 Retrieves structured facts from network devices using Napalm,
-with credentials fetched dynamically from the Vault API.
+with credentials fetched from HashiCorp Vault.
 
 Usage:
-    export VAULT_TOKEN=your_api_key
-    python3 get_facts.py
-    python3 get_facts.py --site VaultLab --group routers
+    export HC_VAULT_ADDR=https://corpvault.oteualiado.pt
+    export HC_VAULT_TOKEN=your_token
+
+    python3 get_facts.py --site devnetsandboxlab
+    python3 get_facts.py --site devnetsandboxlab --device xrd-1
 """
 
 import argparse
@@ -17,30 +19,44 @@ import sys
 from napalm import get_network_driver
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from utils.vault_client import VaultClient
+from utils.hcvault_client import HCVaultClient
+
+# Mapping from Vault device_type to Napalm driver
+NAPALM_DRIVER_MAP = {
+    "cisco_ios":     "ios",
+    "cisco_xr":      "iosxr",
+    "cisco_nxos":    "nxos",
+    "ios-xr":        "iosxr",
+    "arista_eos":    "eos",
+    "ceos-lab":      "eos",
+    "juniper_junos": "junos",
+}
 
 
 def get_facts(device: dict) -> dict | None:
     """Connect to a device via Napalm and retrieve facts."""
-    name = device["name"]
-    print(f"\n=> Connecting to {name} ({device['hostname']})...")
+    name    = device["name"]
+    host    = device["host"]
+    driver_name = NAPALM_DRIVER_MAP.get(device.get("device_type", ""), "ios")
+
+    print(f"\n=> Connecting to {name} ({host}) via Napalm [{driver_name}]...")
 
     try:
-        driver = get_network_driver(device["driver"])
+        driver = get_network_driver(driver_name)
 
         with driver(
-            hostname=device["hostname"],
+            hostname=host,
             username=device["username"],
             password=device["password"],
-            optional_args=device.get("optional_args", {}),
+            optional_args={"port": device.get("port", 22)},
         ) as dev:
             print(f"  -> Connected to {name}!")
             facts = dev.get_facts()
-            print(f"  Hostname:     {facts.get('hostname')}")
-            print(f"  Model:        {facts.get('model')}")
-            print(f"  OS Version:   {facts.get('os_version')}")
-            print(f"  Uptime:       {facts.get('uptime')}s")
-            print(f"  Interfaces:   {', '.join(facts.get('interface_list', []))}")
+            print(f"  Hostname:   {facts.get('hostname')}")
+            print(f"  Model:      {facts.get('model')}")
+            print(f"  OS Version: {facts.get('os_version')}")
+            print(f"  Uptime:     {facts.get('uptime')}s")
+            print(f"  Interfaces: {', '.join(facts.get('interface_list', []))}")
             return facts
 
     except Exception as exc:
@@ -49,16 +65,21 @@ def get_facts(device: dict) -> dict | None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Get device facts via Napalm")
-    parser.add_argument("--site",  default=os.environ.get("VAULT_SITE", "VaultLab"), help="Site filter")
-    parser.add_argument("--group", default=None,                                      help="Group filter")
+    parser = argparse.ArgumentParser(description="Get device facts via Napalm + HashiCorp Vault")
+    parser.add_argument("--site",   required=True, help="Site name in Vault (e.g. devnetsandboxlab)")
+    parser.add_argument("--device", default=None,  help="Specific device name (optional)")
     args = parser.parse_args()
 
-    client  = VaultClient()
-    devices = client.get_napalm_devices(site=args.site, group=args.group)
+    vault = HCVaultClient()
+
+    if args.device:
+        device = vault.get_device(f"{args.site}/{args.device}")
+        devices = [device] if device else []
+    else:
+        devices = vault.get_devices(site=args.site)
 
     if not devices:
-        print(f"No devices found for site='{args.site}' group='{args.group}'")
+        print(f"No devices found under site='{args.site}' in HashiCorp Vault.")
         sys.exit(1)
 
     print(f"Found {len(devices)} device(s).")

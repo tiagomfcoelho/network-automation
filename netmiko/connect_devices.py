@@ -1,8 +1,14 @@
 """
 Netmiko — Connect and Run Commands
 -----------------------------------
-Connects to all devices in the Vault inventory and runs a command.
+Connects to all devices in the HashiCorp Vault inventory and runs a command.
 
+Usage:
+    export HC_VAULT_ADDR=https://corpvault.oteualiado.pt
+    export HC_VAULT_TOKEN=your_token
+
+    python3 connect_devices.py --site devnetsandboxlab
+    python3 connect_devices.py --site devnetsandboxlab --command "show version"
 """
 
 import argparse
@@ -11,20 +17,38 @@ import sys
 
 from netmiko import ConnectHandler
 
-# Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from utils.vault_client import VaultClient
+from utils.hcvault_client import HCVaultClient
+
+# Mapping from HashiCorp Vault device_type to Netmiko device_type
+NETMIKO_DEVICE_TYPE_MAP = {
+    "cisco_ios":     "cisco_ios",
+    "cisco_xr":      "cisco_xr",
+    "cisco_nxos":    "cisco_nxos",
+    "ios-xr":        "cisco_xr",
+    "ceos-lab":      "arista_eos",
+    "arista_eos":    "arista_eos",
+    "juniper_junos": "juniper_junos",
+}
+
+
+def get_netmiko_device_type(device_type: str) -> str:
+    """Map device_type stored in Vault to Netmiko device type."""
+    result = NETMIKO_DEVICE_TYPE_MAP.get(device_type, device_type)
+    if result == device_type and device_type not in NETMIKO_DEVICE_TYPE_MAP:
+        print(f"  [WARN] Unknown device type '{device_type}' — using as-is")
+    return result
 
 
 def connect_and_run(device: dict, command: str = "show ip interface brief") -> str | None:
     """Connect to a device via Netmiko and run a command."""
-    ip   = device["host"]
     name = device["name"]
+    ip = device["host"]
 
     print(f"\n=> Connecting to {name} ({ip})...")
 
     netmiko_device = {
-        "device_type": device["device_type"],
+        "device_type": get_netmiko_device_type(device["device_type"]),
         "host":        ip,
         "username":    device["username"],
         "password":    device["password"],
@@ -47,30 +71,25 @@ def connect_and_run(device: dict, command: str = "show ip interface brief") -> s
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Connect to network devices via Netmiko")
-    parser.add_argument("--site",       default=os.environ.get("VAULT_SITE", "VaultLab"),  help="Site filter")
-    parser.add_argument("--command",    default="show ip interface brief",                 help="Command to run")
+    parser = argparse.ArgumentParser(description="Connect to network devices via Netmiko + HashiCorp Vault")
+    parser.add_argument("--site",    required=True,                         help="Site name in Vault (e.g. devnetsandboxlab)")
+    parser.add_argument("--command", default="show ip interface brief",     help="Command to run on each device")
     args = parser.parse_args()
 
-    # Initialize Vault client
-    client = VaultClient()
-
-    # Get devices from Vault API
-    devices = client.get_devices(site=args.site)
+    vault = HCVaultClient()
+    devices = vault.get_devices(site=args.site)
 
     if not devices:
-        print(f"No devices found for site='{args.site}'")
+        print(f"No devices found under site='{args.site}' in HashiCorp Vault.")
         sys.exit(1)
 
-    print(f"Found {len(devices)} device(s).")
+    print(f"Found {len(devices)} device(s) in HashiCorp Vault.")
 
-    # Connect and run command on each device
     results = {}
     for device in devices:
         output = connect_and_run(device, command=args.command)
         results[device["name"]] = output
 
-    # Summary
     print("\n=== Summary ===")
     ok    = [n for n, o in results.items() if o is not None]
     error = [n for n, o in results.items() if o is None]

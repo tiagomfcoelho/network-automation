@@ -3,28 +3,27 @@
 # Global variables for all playbooks
 # Set these as environment variables or in ansible-vault
 
-# Vault API
-vault_token: "{{ lookup('env', 'VAULT_TOKEN') }}"
-vault_api_url: "{{ lookup('env', 'VAULT_API_URL') | default('https://vault-api.oteualiado.pt') }}"
+# HashiCorp Vault
+hc_vault_addr:  "{{ lookup('env', 'HC_VAULT_ADDR') }}"
+hc_vault_token: "{{ lookup('env', 'HC_VAULT_TOKEN') }}"
+hc_vault_mount: "{{ lookup('env', 'HC_VAULT_MOUNT') | default('network') }}"
 
 # Netbox
 netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') }}"
-netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('https://netbox.oteualiado.pt') }}"
+netbox_url:   "{{ lookup('env', 'NETBOX_URL') | default('https://netbox.oteualiado.pt') }}"
 
-# Provisioning defaults (shared with provision_devices.yml)
+# Provisioning defaults
 provision_defaults:
   ssh_port: 22
   mgmt_interface: Management0
   interface_type: 1000base-t
-  mgmt_only: true
   ip_prefix: 32
   status: active
-  user_agent: "Mozilla/5.0"
 
 # Role colors for Netbox
 role_colors:
-  router: aa1409
-  switch: 2196f3
+  router:   aa1409
+  switch:   2196f3
   firewall: ff5722
-  server: 4caf50
-  default: 2196f3
+  server:   4caf50
+  default:  2196f3

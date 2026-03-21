@@ -1,21 +1,26 @@
 ---
 # provision_devices.yml
-# Provisions devices in both Vaultwarden and Netbox
+# Provisions devices in HashiCorp Vault and Netbox
 #
 # Usage:
-#   export VAULT_TOKEN=your_token
+#   export HC_VAULT_ADDR=https://corpvault.oteualiado.pt
+#   export HC_VAULT_TOKEN=your_token
 #   export NETBOX_TOKEN=your_token
 #
 #   # Provision all devices
 #   ansible-playbook ansible/playbooks/provision_devices.yml \
-#     -e @ansible/vars/devices.yml
+#     -e @ansible/vars/devices.yml \
+#     -e @ansible/vars/secrets.yml \
+#     --ask-vault-pass
 #
 #   # Provision a single device
 #   ansible-playbook ansible/playbooks/provision_devices.yml \
 #     -e @ansible/vars/devices.yml \
-#     -e "target_device=xrd-1"
+#     -e @ansible/vars/secrets.yml \
+#     -e "target_device=xrd-1" \
+#     --ask-vault-pass
 
-- name: Provision Devices in Vaultwarden and Netbox
+- name: Provision Devices in HashiCorp Vault and Netbox
   hosts: localhost
   connection: local
   gather_facts: false
@@ -53,7 +58,7 @@
           - item.manufacturer_slug is defined
           - item.username is defined
           - item.password is defined
-          - item.vault_folder is defined
+          - item.vault_path is defined
         fail_msg: "Device '{{ item.name | default('unknown') }}' is missing required fields"
       loop: "{{ devices }}"
       when: target_device == 'all' or item.name == target_device
@@ -78,50 +83,32 @@
         msg: "Provisioning {{ filtered_devices | length }} device(s): {{ filtered_devices | map(attribute='name') | list }}"
 
     # -----------------------------------------------------------------------
-    # VAULTWARDEN
+    # HASHICORP VAULT — Store credentials
     # -----------------------------------------------------------------------
 
-    - name: Get Vault folders
+    - name: Store credentials in HashiCorp Vault
       uri:
-        url: "{{ vault_api_url }}/vault/folders"
-        method: GET
-        headers:
-          x-api-key: "{{ vault_token }}"
-          User-Agent: "Mozilla/5.0"
-      register: vault_folders
-
-    - name: Create items in Vaultwarden
-      uri:
-        url: "{{ vault_api_url }}/vault/item"
+        url: "{{ hc_vault_addr }}/v1/{{ hc_vault_mount }}/data/{{ item.vault_path }}"
         method: POST
         headers:
-          x-api-key: "{{ vault_token }}"
+          X-Vault-Token: "{{ hc_vault_token }}"
           Content-Type: application/json
-          User-Agent: "Mozilla/5.0"
         body_format: json
         body:
-          name: "{{ item.name }}"
-          username: "{{ item.username }}"
-          password: "{{ item.password }}"
-          uri: "ssh://{{ item.ip }}"
-          folder_id: >-
-            {{ (vault_folders.json.folders
-                | selectattr('name', 'equalto', item.vault_folder)
-                | first).id }}
-          fields:
-            - { name: ip, value: "{{ item.ip | string }}" }
-            - { name: port, value: "{{ (item.ssh_port | default(22)) | string }}" }
-            - { name: device_type, value: "{{ item.device_type }}" }
-            - { name: groups, value: "{{ item.groups | default('') }}" }
-            - { name: site, value: "{{ item.site }}" }
-        status_code: [200, 201]
+          data:
+            username: "{{ item.username }}"
+            password: "{{ item.password }}"
+            ip: "{{ item.ip | string }}"
+            port: "{{ (item.ssh_port | default(22)) | string }}"
+            device_type: "{{ item.device_type }}"
+            site: "{{ item.site }}"
+        status_code: [200, 204]
       loop: "{{ filtered_devices }}"
       register: vault_results
-      ignore_errors: true
 
-    - name: Vault provisioning summary
+    - name: HashiCorp Vault provisioning summary
       debug:
-        msg: "Vaultwarden — {{ item.item.name }}: {{ 'OK' if item.status in [200, 201] else 'FAILED (' + (item.json.detail | default('unknown')) + ')' }}"
+        msg: "HashiCorp Vault — {{ item.item.name }}: {{ 'OK' if item.status in [200, 204] else 'FAILED' }}"
       loop: "{{ vault_results.results }}"
       when:
         - vault_results.results is defined
@@ -264,5 +251,5 @@
 
     - name: Provisioning complete
       debug:
-        msg: "✓ {{ item.name }} provisioned in Vaultwarden and Netbox"
+        msg: "✓ {{ item.name }} provisioned in HashiCorp Vault and Netbox"
       loop: "{{ filtered_devices }}"

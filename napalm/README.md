@@ -1,25 +1,48 @@
 # Napalm
 
-Retrieve structured data from network devices using [Napalm](https://napalm.readthedocs.io/), with credentials fetched dynamically from the Vault API.
+Structured data retrieval from network devices using [Napalm](https://napalm.readthedocs.io/), with credentials from HashiCorp Vault.
+
+## Setup
+
+```bash
+export HC_VAULT_ADDR=https://corpvault.example.com
+export HC_VAULT_TOKEN=your_vault_token
+```
 
 ## Usage
+
 ```bash
-# Get facts from all devices
-python3 get_facts.py
+# Get facts from all devices in a site
+python3 get_facts.py --site devnetsandboxlab
 
-# Filter by group
-python3 get_facts.py --group routers
+# Get facts from a specific device
+python3 get_facts.py --site devnetsandboxlab --device xrd-1
+```
 
-# Different site
-python3 get_facts.py --site Lab-CCNP
+**Example output:**
+```
+Found 1 device(s).
+
+=> Connecting to xrd-1 (131.226.217.150) via Napalm [iosxr]...
+  -> Connected to xrd-1!
+  Hostname:   xrd-1
+  Model:      IOS XRv 9000
+  OS Version: 25.3.1 LNT
+  Uptime:     12345s
+  Interfaces: MgmtEth0/RP0/CPU0/0, GigabitEthernet0/0/0/0, Loopback0
+
+=== Summary ===
+  ✓ xrd-1
+Total: 1 OK, 0 ERROR
 ```
 
 ## Supported Drivers
 
-| device_type (Vault) | Napalm Driver |
-|---------------------|---------------|
+| Vault device_type | Napalm Driver |
+|-------------------|---------------|
 | `cisco_ios` | `ios` |
-| `cisco_nxos` | `nxos` |
 | `cisco_xr` | `iosxr` |
-| `juniper_junos` | `junos` |
+| `cisco_nxos` | `nxos` |
 | `arista_eos` | `eos` |
+| `ceos-lab` | `eos` |
+| `juniper_junos` | `junos` |

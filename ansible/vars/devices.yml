@@ -1,26 +1,19 @@
 ---
 # devices.yml
-# Define all devices to be provisioned in Vaultwarden and Netbox
+# Define all devices to be provisioned in HashiCorp Vault and Netbox
 # Passwords are stored in secrets.yml (encrypted with Ansible Vault)
 #
+# vault_path follows the convention: <site_slug>/<device_name>
+# This maps directly to the KV path in HashiCorp Vault.
+#
 # Usage:
-#   # First time — encrypt secrets
 #   ansible-vault encrypt ansible/vars/secrets.yml
 #
-#   # Provision all devices
 #   ansible-playbook ansible/playbooks/provision_devices.yml \
 #     -e @ansible/vars/devices.yml \
 #     -e @ansible/vars/secrets.yml \
-#     --ask-vault-pass
-#
-#   # Provision a single device
-#   ansible-playbook ansible/playbooks/provision_devices.yml \
-#     -e @ansible/vars/devices.yml \
-#     -e @ansible/vars/secrets.yml \
-#     -e "target_device=xrd-1" \
 #     --ask-vault-pass
 
-# YAML anchors for common configurations
 vaultlab_router: &vaultlab_router
   site: VaultLab
   site_slug: vaultlab
@@ -31,7 +24,6 @@ vaultlab_router: &vaultlab_router
   device_type: ceos-lab
   manufacturer: Arista
   manufacturer_slug: arista
-  vault_folder: VaultLab/Routers
   groups: routers,core
 
 vaultlab_switch: &vaultlab_switch
@@ -44,7 +36,6 @@ vaultlab_switch: &vaultlab_switch
   device_type: ceos-lab
   manufacturer: Arista
   manufacturer_slug: arista
-  vault_folder: VaultLab/Switches
   groups: switches,access
 
 devices:
@@ -63,7 +54,7 @@ devices:
     ip: 131.226.217.150
     username: "{{ devnet_xrd1_username }}"
     password: "{{ devnet_xrd1_password }}"
-    vault_folder: DevNetSandboxLab/Routers
+    vault_path: devnetsandboxlab/xrd-1
     groups: routers,iosxr
 
   # -----------------------------------------------------------------------
@@ -72,10 +63,12 @@ devices:
   - name: r1
     <<: *vaultlab_router
     ip: 172.20.20.11
+    vault_path: vaultlab/r1
 
   - name: r2
     <<: *vaultlab_router
     ip: 172.20.20.12
+    vault_path: vaultlab/r2
 
   # -----------------------------------------------------------------------
   # VaultLab — Arista cEOS Switches
@@ -83,7 +76,9 @@ devices:
   - name: sw1
     <<: *vaultlab_switch
     ip: 172.20.20.21
+    vault_path: vaultlab/sw1
 
   - name: sw2
     <<: *vaultlab_switch
     ip: 172.20.20.22
+    vault_path: vaultlab/sw2

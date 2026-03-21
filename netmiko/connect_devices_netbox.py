@@ -1,9 +1,18 @@
 """
-Netmiko — Connect using Netbox + Vaultwarden
----------------------------------------------
+Netmiko — Connect using Netbox + HashiCorp Vault
+-------------------------------------------------
 Fetches device inventory from Netbox (IP, role, type)
-and credentials from Vaultwarden, then connects via Netmiko.
+and credentials from HashiCorp Vault, then connects via Netmiko.
 
+Usage:
+    export HC_VAULT_ADDR=https://corpvault.oteualiado.pt
+    export HC_VAULT_TOKEN=your_token
+    export HC_VAULT_MOUNT=network
+    export NETBOX_URL=https://netbox.oteualiado.pt
+    export NETBOX_TOKEN=your_netbox_token
+
+    python3 connect_devices_netbox.py --site devnetsandboxlab --role router
+    python3 connect_devices_netbox.py --site devnetsandboxlab --command "show version"
 """
 
 import argparse
@@ -13,24 +22,24 @@ import sys
 from netmiko import ConnectHandler
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from utils.vault_client import VaultClient
+from utils.hcvault_client import HCVaultClient
 from utils.netbox_client import NetboxClient
 
 # Mapping from Netbox device_type slug to Netmiko device_type
 NETMIKO_DEVICE_TYPE_MAP = {
-    "ceos-lab":       "arista_eos",
-    "iosv":           "cisco_ios",
-    "iosvl2":         "cisco_ios",
-    "csr1000v":       "cisco_ios",
-    "ios-xr":         "cisco_xr",       # IOS XR
-    "iosxr":          "cisco_xr",
-    "nexus":          "cisco_nxos",
-    "nxos":           "cisco_nxos",
-    "juniper":        "juniper_junos",
-    "junos":          "juniper_junos",
-    "arista-eos":     "arista_eos",
-    "eos":            "arista_eos",
-    "generic":        "cisco_ios",      # default fallback
+    "ceos-lab":    "arista_eos",
+    "iosv":        "cisco_ios",
+    "iosvl2":      "cisco_ios",
+    "csr1000v":    "cisco_ios",
+    "ios-xr":      "cisco_xr",
+    "iosxr":       "cisco_xr",
+    "nexus":       "cisco_nxos",
+    "nxos":        "cisco_nxos",
+    "juniper":     "juniper_junos",
+    "junos":       "juniper_junos",
+    "arista-eos":  "arista_eos",
+    "eos":         "arista_eos",
+    "generic":     "cisco_ios",
 }
 
 
@@ -79,21 +88,19 @@ def connect_and_run(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Connect to devices using Netbox inventory + Vaultwarden credentials"
+        description="Connect to devices using Netbox inventory + HashiCorp Vault credentials"
     )
-    parser.add_argument("--site",       default=None,                       help="Filter by site slug (e.g. vaultlab)")
-    parser.add_argument("--role",       default="router",               help="Filter by role slug (e.g. router, switch)")
-    parser.add_argument("--command",    default="show ip interface brief",  help="Command to run on each device")
-    parser.add_argument("--port",       default=22, type=int,               help="SSH port (default: 22)")
+    parser.add_argument("--site",    default=None,                      help="Filter by site slug (e.g. devnetsandboxlab)")
+    parser.add_argument("--role",    default=None,                      help="Filter by role slug (e.g. router, switch)")
+    parser.add_argument("--command", default="show ip interface brief", help="Command to run on each device")
+    parser.add_argument("--port",    default=22, type=int,              help="SSH port (default: 22)")
     args = parser.parse_args()
 
-    # Initialize clients
-    vault  = VaultClient()
+    vault  = HCVaultClient()
     netbox = NetboxClient()
 
-    # Get devices from Netbox
     print(f"Fetching devices from Netbox (site={args.site}, role={args.role})...")
-    devices = netbox.get_devices(site=args.site.lower(), role=args.role.lower())
+    devices = netbox.get_devices(site=args.site, role=args.role)
 
     if not devices:
         print("No devices found in Netbox.")
@@ -111,20 +118,20 @@ def main():
             results[name] = None
             continue
 
-        # Get credentials from Vaultwarden
-        # Use vault_item_id if available (avoids ambiguity), otherwise use name
-        vault_key = device.get("vault_item_id") or name
+        # Fetch credentials from HashiCorp Vault
+        # Path convention: <site_slug>/<device_name>
+        site_slug = device.get("site", "").lower()
+        vault_path = f"{site_slug}/{name}"
+
         try:
-            username, password = vault.get_credentials(vault_key)
+            username, password = vault.get_credentials(vault_path)
         except Exception as exc:
-            print(f"  -> SKIP {name} — credentials not found in Vaultwarden: {exc}")
+            print(f"  -> SKIP {name} — credentials not found in HashiCorp Vault ({vault_path}): {exc}")
             results[name] = None
             continue
 
-        # Map device type
         device_type = get_netmiko_device_type(device.get("device_type", ""))
 
-        # Connect and run command
         output = connect_and_run(
             name=name,
             ip=ip,
@@ -136,7 +143,6 @@ def main():
         )
         results[name] = output
 
-    # Summary
     print("\n=== Summary ===")
     ok   = [n for n, o in results.items() if o is not None]
     fail = [n for n, o in results.items() if o is None]
