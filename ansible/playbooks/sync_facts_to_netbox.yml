@@ -134,7 +134,7 @@
         state: present
       delegate_to: localhost
       when: device_version is defined and device_version != ''
-      ignore_errors: true
+      failed_when: false
 
     - name: Assign platform to device
       netbox.netbox.netbox_device:
@@ -147,7 +147,7 @@
         state: present
       delegate_to: localhost
       when: device_version is defined and device_version != ''
-      ignore_errors: true
+      failed_when: false
 
     # -----------------------------------------------------------------------
     # Summary

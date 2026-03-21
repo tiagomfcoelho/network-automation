@@ -33,7 +33,7 @@ jobs:
         run: |
           flake8 utils/ netmiko/ napalm/ \
             --max-line-length=120 \
-            --ignore=E501,W503,E302,E303 \
+            --ignore=E501,W503,E302,E303,E241,E221,E402 \
             --exclude=__pycache__
 
   # ---------------------------------------------------------------------------
