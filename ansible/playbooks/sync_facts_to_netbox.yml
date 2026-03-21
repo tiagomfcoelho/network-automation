@@ -1,0 +1,163 @@
+---
+# sync_facts_to_netbox.yml
+# Collects device facts and updates Netbox with current state
+#
+# Updates in Netbox:
+#   - Serial number
+#   - OS version (platform)
+#   - Interface list
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/sync_facts_to_netbox.yml \
+#     -i ansible/inventory/vault_inventory.py
+#
+#   # Sync specific group
+#   ansible-playbook ansible/playbooks/sync_facts_to_netbox.yml \
+#     -i ansible/inventory/vault_inventory.py \
+#     --limit routers
+
+- name: Sync Device Facts to Netbox
+  hosts: all
+  gather_facts: false
+  connection: network_cli
+
+  vars:
+    netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('https://netbox.oteualiado.pt') }}"
+    netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') }}"
+
+  tasks:
+
+    # -----------------------------------------------------------------------
+    # Collect facts — IOS / IOS XE
+    # -----------------------------------------------------------------------
+
+    - name: Collect facts (IOS/IOS XE)
+      cisco.ios.ios_facts:
+        gather_subset:
+          - hardware
+          - interfaces
+      register: ios_facts
+      when: ansible_network_os in ['cisco_ios', 'ios']
+
+    - name: Set normalized facts (IOS/IOS XE)
+      set_fact:
+        device_serial:   "{{ ios_facts.ansible_facts.ansible_net_serialnum | default('') }}"
+        device_version:  "{{ ios_facts.ansible_facts.ansible_net_version | default('') }}"
+        device_model:    "{{ ios_facts.ansible_facts.ansible_net_model | default('') }}"
+        device_hostname: "{{ ios_facts.ansible_facts.ansible_net_hostname | default(inventory_hostname) }}"
+      when: ansible_network_os in ['cisco_ios', 'ios']
+
+    # -----------------------------------------------------------------------
+    # Collect facts — IOS XR
+    # -----------------------------------------------------------------------
+
+    - name: Collect facts (IOS XR)
+      cisco.iosxr.iosxr_facts:
+        gather_subset:
+          - hardware
+          - interfaces
+      register: xr_facts
+      when: ansible_network_os == 'iosxr'
+
+    - name: Set normalized facts (IOS XR)
+      set_fact:
+        device_serial:   "{{ xr_facts.ansible_facts.ansible_net_serialnum | default('') }}"
+        device_version:  "{{ xr_facts.ansible_facts.ansible_net_version | default('') }}"
+        device_model:    "{{ xr_facts.ansible_facts.ansible_net_model | default('') }}"
+        device_hostname: "{{ xr_facts.ansible_facts.ansible_net_hostname | default(inventory_hostname) }}"
+      when: ansible_network_os == 'iosxr'
+
+    # -----------------------------------------------------------------------
+    # Collect facts — Arista EOS
+    # -----------------------------------------------------------------------
+
+    - name: Collect facts (Arista EOS)
+      arista.eos.eos_facts:
+        gather_subset:
+          - hardware
+          - interfaces
+      register: eos_facts
+      when: ansible_network_os == 'eos'
+
+    - name: Set normalized facts (Arista EOS)
+      set_fact:
+        device_serial:   "{{ eos_facts.ansible_facts.ansible_net_serialnum | default('') }}"
+        device_version:  "{{ eos_facts.ansible_facts.ansible_net_version | default('') }}"
+        device_model:    "{{ eos_facts.ansible_facts.ansible_net_model | default('') }}"
+        device_hostname: "{{ eos_facts.ansible_facts.ansible_net_hostname | default(inventory_hostname) }}"
+      when: ansible_network_os == 'eos'
+
+    # -----------------------------------------------------------------------
+    # Update Netbox
+    # -----------------------------------------------------------------------
+
+    - name: Get device ID from Netbox
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/?name={{ inventory_hostname }}"
+        method: GET
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+      register: netbox_device
+      delegate_to: localhost
+
+    - name: Update device serial and comments in Netbox
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/{{ netbox_device.json.results[0].id }}/"
+        method: PATCH
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          serial: "{{ device_serial | default('') }}"
+          comments: |
+            Last synced: {{ lookup('pipe', 'date') }}
+            Hostname: {{ device_hostname | default(inventory_hostname) }}
+            Version: {{ device_version | default('unknown') }}
+            Model: {{ device_model | default('unknown') }}
+      delegate_to: localhost
+      when:
+        - netbox_device.json.count > 0
+        - device_serial is defined
+
+    # -----------------------------------------------------------------------
+    # Create/update platform in Netbox
+    # -----------------------------------------------------------------------
+
+    - name: Ensure platform exists in Netbox
+      netbox.netbox.netbox_platform:
+        netbox_url: "{{ netbox_url }}"
+        netbox_token: "{{ netbox_token }}"
+        data:
+          name: "{{ device_version | default('unknown') }}"
+          slug: "{{ device_version | default('unknown') | lower | regex_replace('[^a-z0-9]+', '-') | truncate(50, true, '') }}"
+        state: present
+      delegate_to: localhost
+      when: device_version is defined and device_version != ''
+      ignore_errors: true
+
+    - name: Assign platform to device
+      netbox.netbox.netbox_device:
+        netbox_url: "{{ netbox_url }}"
+        netbox_token: "{{ netbox_token }}"
+        data:
+          name: "{{ inventory_hostname }}"
+          platform:
+            name: "{{ device_version }}"
+        state: present
+      delegate_to: localhost
+      when: device_version is defined and device_version != ''
+      ignore_errors: true
+
+    # -----------------------------------------------------------------------
+    # Summary
+    # -----------------------------------------------------------------------
+
+    - name: Summary
+      debug:
+        msg:
+          - "✓ {{ inventory_hostname }}"
+          - "  Serial:  {{ device_serial | default('N/A') }}"
+          - "  Version: {{ device_version | default('N/A') }}"
+          - "  Model:   {{ device_model | default('N/A') }}"
+      when: device_serial is defined or device_version is defined

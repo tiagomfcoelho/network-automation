@@ -1,0 +1,108 @@
+---
+# configure_interfaces.yml
+# Configures interfaces on network devices
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/configure_interfaces.yml \
+#     -i ansible/inventory/vault_inventory.py \
+#     -e @ansible/vars/interfaces.yml
+#
+# Requires: ansible/vars/interfaces.yml with interface definitions
+
+- name: Configure Interfaces
+  hosts: all
+  gather_facts: false
+  connection: network_cli
+
+  tasks:
+
+    # -----------------------------------------------------------------------
+    # Cisco IOS / IOS XE
+    # -----------------------------------------------------------------------
+
+    - name: Configure interfaces (IOS/IOS XE)
+      cisco.ios.ios_interfaces:
+        config: "{{ host_interfaces | default([]) }}"
+        state: merged
+      when:
+        - ansible_network_os in ['cisco_ios', 'ios']
+        - host_interfaces is defined
+      register: ios_result
+
+    - name: Configure IP addresses (IOS/IOS XE)
+      cisco.ios.ios_l3_interfaces:
+        config: "{{ host_l3_interfaces | default([]) }}"
+        state: merged
+      when:
+        - ansible_network_os in ['cisco_ios', 'ios']
+        - host_l3_interfaces is defined
+
+    # -----------------------------------------------------------------------
+    # Cisco IOS XR
+    # -----------------------------------------------------------------------
+
+    - name: Configure interfaces (IOS XR)
+      cisco.iosxr.iosxr_interfaces:
+        config: "{{ host_interfaces | default([]) }}"
+        state: merged
+      when:
+        - ansible_network_os == 'iosxr'
+        - host_interfaces is defined
+
+    - name: Configure IP addresses (IOS XR)
+      cisco.iosxr.iosxr_l3_interfaces:
+        config: "{{ host_l3_interfaces | default([]) }}"
+        state: merged
+      when:
+        - ansible_network_os == 'iosxr'
+        - host_l3_interfaces is defined
+
+    # -----------------------------------------------------------------------
+    # Arista EOS
+    # -----------------------------------------------------------------------
+
+    - name: Configure interfaces (Arista EOS)
+      arista.eos.eos_interfaces:
+        config: "{{ host_interfaces | default([]) }}"
+        state: merged
+      when:
+        - ansible_network_os == 'eos'
+        - host_interfaces is defined
+
+    - name: Configure IP addresses (Arista EOS)
+      arista.eos.eos_l3_interfaces:
+        config: "{{ host_l3_interfaces | default([]) }}"
+        state: merged
+      when:
+        - ansible_network_os == 'eos'
+        - host_l3_interfaces is defined
+
+    # -----------------------------------------------------------------------
+    # Verify
+    # -----------------------------------------------------------------------
+
+    - name: Verify interfaces (IOS/IOS XE)
+      cisco.ios.ios_command:
+        commands:
+          - show ip interface brief
+      register: verify_output
+      when: ansible_network_os in ['cisco_ios', 'ios']
+
+    - name: Verify interfaces (IOS XR)
+      cisco.iosxr.iosxr_command:
+        commands:
+          - show ip interface brief
+      register: verify_output
+      when: ansible_network_os == 'iosxr'
+
+    - name: Verify interfaces (Arista EOS)
+      arista.eos.eos_command:
+        commands:
+          - show ip interface brief
+      register: verify_output
+      when: ansible_network_os == 'eos'
+
+    - name: Show interface status
+      debug:
+        msg: "{{ verify_output.stdout[0] }}"
+      when: verify_output is defined and verify_output.stdout is defined

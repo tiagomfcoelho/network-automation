@@ -1,0 +1,70 @@
+---
+# collect_version.yml
+# Collects "show version" from all devices and saves to files
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/collect_version.yml \
+#     -i ansible/inventory/vault_inventory.py \
+#     --limit routers
+#
+# Output: reports/version_<hostname>_<date>.txt
+
+- name: Collect Show Version
+  hosts: all
+  gather_facts: false
+  connection: network_cli
+
+  vars:
+    output_dir: "{{ playbook_dir }}/../../reports/version"
+    timestamp: "{{ lookup('pipe', 'date +%Y%m%d_%H%M%S') }}"
+
+  tasks:
+
+    - name: Create output directory
+      file:
+        path: "{{ output_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Collect show version
+      cisco.ios.ios_command:
+        commands:
+          - show version
+      register: version_output
+      when: ansible_network_os in ['cisco_ios', 'ios']
+
+    - name: Collect show version (IOS XR)
+      cisco.iosxr.iosxr_command:
+        commands:
+          - show version
+      register: version_output_xr
+      when: ansible_network_os == 'iosxr'
+
+    - name: Collect show version (Arista EOS)
+      arista.eos.eos_command:
+        commands:
+          - show version
+      register: version_output_eos
+      when: ansible_network_os == 'eos'
+
+    - name: Save output to file
+      copy:
+        content: |
+          ================================================================================
+          Device   : {{ inventory_hostname }}
+          Date     : {{ timestamp }}
+          Command  : show version
+          ================================================================================
+
+          {{ (version_output.stdout[0]
+              | default(version_output_xr.stdout[0]
+              | default(version_output_eos.stdout[0]
+              | default('No output')))) }}
+        dest: "{{ output_dir }}/{{ inventory_hostname }}_{{ timestamp }}.txt"
+      delegate_to: localhost
+
+    - name: Summary
+      debug:
+        msg: "✓ {{ inventory_hostname }} — saved to reports/version/{{ inventory_hostname }}_{{ timestamp }}.txt"

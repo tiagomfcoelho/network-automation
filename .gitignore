@@ -27,3 +27,5 @@ htmlcov/
 *.retry
 ansible/vars/secrets.yml
 .vault_pass
+reports/
+backups/

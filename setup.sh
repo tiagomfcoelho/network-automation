@@ -61,7 +61,7 @@ echo "  ✓ Python dependencies installed"
 echo ""
 echo "[4/5] Installing Ansible and collections..."
 pip install --quiet ansible ansible-lint pynetbox
-ansible-galaxy collection install netbox.netbox --quiet
+ansible-galaxy collection install -r ansible/requirements.yml --quiet
 echo "  ✓ Ansible installed"
 echo "  ✓ netbox.netbox collection installed"
 
