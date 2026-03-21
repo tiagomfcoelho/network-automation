@@ -46,3 +46,12 @@ Total: 1 OK, 0 ERROR
 | `arista_eos` | `eos` |
 | `ceos-lab` | `eos` |
 | `juniper_junos` | `junos` |
+
+## Known Limitations
+
+### Cisco IOS XR (DevNet Sandbox)
+Napalm requires the XML agent to be enabled on IOS XR:
+```
+xml agent tty iteration off
+```
+This is not available on shared DevNet sandboxes. Use Netmiko for IOS XR on shared environments.

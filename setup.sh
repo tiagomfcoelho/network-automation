@@ -43,7 +43,7 @@ echo "  ✓ Python dependencies installed"
 echo ""
 echo "[4/5] Installing Ansible and collections..."
 pip install --quiet ansible ansible-lint pynetbox
-ansible-galaxy collection install -r ansible/requirements.yml --quiet
+ansible-galaxy collection install -r ansible/requirements.yml
 echo "  ✓ Ansible installed"
 echo "  ✓ Ansible collections installed"
 
