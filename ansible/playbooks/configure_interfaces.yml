@@ -19,10 +19,16 @@
   connection: network_cli
 
   tasks:
-    - name: Load interface vars
+    - name: Load host-specific interface vars
       include_vars:
         file: "{{ playbook_dir }}/../vars/interfaces/{{ inventory_hostname }}.yml"
-      failed_when: false
+      ignore_errors: true
+      register: host_vars_loaded
+
+    - name: Load default interface vars (fallback)
+      include_vars:
+        file: "{{ playbook_dir }}/../vars/interfaces/defaults.yml"
+      when: host_vars_loaded is failed
 
 
 

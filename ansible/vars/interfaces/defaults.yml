@@ -1,0 +1,7 @@
+---
+# defaults.yml
+# Default interface configuration applied when no host-specific file exists.
+# Override by creating ansible/vars/interfaces/<hostname>.yml
+
+host_interfaces: []
+host_l3_interfaces: []
