@@ -10,19 +10,15 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
-
 # OS
 .DS_Store
 Thumbs.db
-
 # Logs
 *.log
-
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
-
 # Ansible
 *.retry
 ansible/vars/secrets.yml
