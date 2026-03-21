@@ -15,6 +15,12 @@
   connection: network_cli
 
   tasks:
+    - name: Load interface vars
+      include_vars:
+        file: "{{ playbook_dir }}/../vars/interfaces/{{ inventory_hostname }}.yml"
+      failed_when: false
+
+
 
     # -----------------------------------------------------------------------
     # Cisco IOS / IOS XE
