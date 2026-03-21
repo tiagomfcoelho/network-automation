@@ -3,10 +3,6 @@ Netmiko — Connect and Run Commands
 -----------------------------------
 Connects to all devices in the Vault inventory and runs a command.
 
-Usage:
-    export VAULT_TOKEN=your_api_key
-    python3 connect_routers.py
-    python3 connect_routers.py --site VaultLab --groups routers --command "show version"
 """
 
 import argparse
@@ -52,19 +48,18 @@ def connect_and_run(device: dict, command: str = "show ip interface brief") -> s
 
 def main():
     parser = argparse.ArgumentParser(description="Connect to network devices via Netmiko")
-    parser.add_argument("--site",    default=os.environ.get("VAULT_SITE", "VaultLab"), help="Site filter")
-    parser.add_argument("--groups",   default="routers",                                      help="Groups filter (e.g. routers)")
-    parser.add_argument("--command", default="show ip interface brief",                 help="Command to run")
+    parser.add_argument("--site",       default=os.environ.get("VAULT_SITE", "VaultLab"),  help="Site filter")
+    parser.add_argument("--command",    default="show ip interface brief",                 help="Command to run")
     args = parser.parse_args()
 
     # Initialize Vault client
     client = VaultClient()
 
     # Get devices from Vault API
-    devices = client.get_devices(site=args.site, groups=args.groups)
+    devices = client.get_devices(site=args.site)
 
     if not devices:
-        print(f"No devices found for site='{args.site}' groups='{args.groups}'")
+        print(f"No devices found for site='{args.site}'")
         sys.exit(1)
 
     print(f"Found {len(devices)} device(s).")

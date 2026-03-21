@@ -111,7 +111,7 @@ Connect to devices and run commands via SSH.
 
 ```bash
 # Using Vault API as inventory (includes IP + credentials)
-python3 netmiko/connect_devices.py --site VaultLab --group routers
+python3 netmiko/connect_devices.py --site VaultLab
 
 # Using Netbox as inventory + Vault for credentials
 python3 netmiko/connect_devices_netbox.py --site VaultLab --role Router

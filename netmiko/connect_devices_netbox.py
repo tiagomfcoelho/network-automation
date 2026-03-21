@@ -4,15 +4,6 @@ Netmiko — Connect using Netbox + Vaultwarden
 Fetches device inventory from Netbox (IP, role, type)
 and credentials from Vaultwarden, then connects via Netmiko.
 
-Usage:
-    export VAULT_TOKEN=your_api_key
-    export NETBOX_URL=https://netbox.oteualiado.pt
-    export NETBOX_TOKEN=your_netbox_token
-    export VAULT_API_URL=https://vault-api.oteualiado.pt
-
-    python3 connect_devices_netbox.py
-    python3 connect_devices_netbox.py --site vaultlab --role router
-    python3 connect_devices_netbox.py --site devnetsandboxlab --command "show version"
 """
 
 import argparse
@@ -90,10 +81,10 @@ def main():
     parser = argparse.ArgumentParser(
         description="Connect to devices using Netbox inventory + Vaultwarden credentials"
     )
-    parser.add_argument("--site",    default=None,                      help="Filter by site slug (e.g. vaultlab)")
-    parser.add_argument("--role",    default="router",                      help="Filter by role slug (e.g. router, switch)")
-    parser.add_argument("--command", default="show ip interface brief", help="Command to run on each device")
-    parser.add_argument("--port",    default=22, type=int,              help="SSH port (default: 22)")
+    parser.add_argument("--site",       default=None,                       help="Filter by site slug (e.g. vaultlab)")
+    parser.add_argument("--role",       default="router",               help="Filter by role slug (e.g. router, switch)")
+    parser.add_argument("--command",    default="show ip interface brief",  help="Command to run on each device")
+    parser.add_argument("--port",       default=22, type=int,               help="SSH port (default: 22)")
     args = parser.parse_args()
 
     # Initialize clients
