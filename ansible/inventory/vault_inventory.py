@@ -9,10 +9,10 @@ Usage:
     ansible-inventory -i inventory/vault_inventory.py --list
 
     # Use in playbook
-    ansible-playbook -i inventory/vault_inventory.py playbooks/show_interfaces.yml
+    ansible-playbook -i inventory/vault_inventory.py ansible/playbooks/show_interfaces.yml
 
     # Filter by site
-    VAULT_SITE=VaultLab ansible-playbook -i inventory/vault_inventory.py playbooks/show_interfaces.yml
+    VAULT_SITE=VaultLab ansible-playbook -i inventory/vault_inventory.py ansible/playbooks/show_interfaces.yml
 """
 
 import json

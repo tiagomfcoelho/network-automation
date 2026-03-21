@@ -3,8 +3,8 @@
 # Shows IP interface brief on all routers
 #
 # Usage:
-#   ansible-playbook -i inventory/vault_inventory.py playbooks/show_interfaces.yml
-#   ansible-playbook -i inventory/vault_inventory.py playbooks/show_interfaces.yml --limit routers
+#   ansible-playbook -i inventory/vault_inventory.py ansible/playbooks/show_interfaces.yml
+#   ansible-playbook -i inventory/vault_inventory.py ansible/playbooks/show_interfaces.yml --limit routers
 
 - name: Show IP Interface Brief
   hosts: routers
