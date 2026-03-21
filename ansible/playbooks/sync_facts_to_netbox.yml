@@ -41,9 +41,9 @@
 
     - name: Set normalized facts (IOS/IOS XE)
       set_fact:
-        device_serial:   "{{ ios_facts.ansible_facts.ansible_net_serialnum | default('') }}"
-        device_version:  "{{ ios_facts.ansible_facts.ansible_net_version | default('') }}"
-        device_model:    "{{ ios_facts.ansible_facts.ansible_net_model | default('') }}"
+        device_serial: "{{ ios_facts.ansible_facts.ansible_net_serialnum | default('') }}"
+        device_version: "{{ ios_facts.ansible_facts.ansible_net_version | default('') }}"
+        device_model: "{{ ios_facts.ansible_facts.ansible_net_model | default('') }}"
         device_hostname: "{{ ios_facts.ansible_facts.ansible_net_hostname | default(inventory_hostname) }}"
       when: ansible_network_os in ['cisco_ios', 'ios']
 
@@ -61,9 +61,9 @@
 
     - name: Set normalized facts (IOS XR)
       set_fact:
-        device_serial:   "{{ xr_facts.ansible_facts.ansible_net_serialnum | default('') }}"
-        device_version:  "{{ xr_facts.ansible_facts.ansible_net_version | default('') }}"
-        device_model:    "{{ xr_facts.ansible_facts.ansible_net_model | default('') }}"
+        device_serial: "{{ xr_facts.ansible_facts.ansible_net_serialnum | default('') }}"
+        device_version: "{{ xr_facts.ansible_facts.ansible_net_version | default('') }}"
+        device_model: "{{ xr_facts.ansible_facts.ansible_net_model | default('') }}"
         device_hostname: "{{ xr_facts.ansible_facts.ansible_net_hostname | default(inventory_hostname) }}"
       when: ansible_network_os == 'iosxr'
 
@@ -81,9 +81,9 @@
 
     - name: Set normalized facts (Arista EOS)
       set_fact:
-        device_serial:   "{{ eos_facts.ansible_facts.ansible_net_serialnum | default('') }}"
-        device_version:  "{{ eos_facts.ansible_facts.ansible_net_version | default('') }}"
-        device_model:    "{{ eos_facts.ansible_facts.ansible_net_model | default('') }}"
+        device_serial: "{{ eos_facts.ansible_facts.ansible_net_serialnum | default('') }}"
+        device_version: "{{ eos_facts.ansible_facts.ansible_net_version | default('') }}"
+        device_model: "{{ eos_facts.ansible_facts.ansible_net_model | default('') }}"
         device_hostname: "{{ eos_facts.ansible_facts.ansible_net_hostname | default(inventory_hostname) }}"
       when: ansible_network_os == 'eos'
 

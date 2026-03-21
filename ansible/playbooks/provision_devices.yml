@@ -109,11 +109,11 @@
                 | selectattr('name', 'equalto', item.vault_folder)
                 | first).id }}
           fields:
-            - { name: ip,          value: "{{ item.ip | string }}" }
-            - { name: port,        value: "{{ (item.ssh_port | default(22)) | string }}" }
+            - { name: ip, value: "{{ item.ip | string }}" }
+            - { name: port, value: "{{ (item.ssh_port | default(22)) | string }}" }
             - { name: device_type, value: "{{ item.device_type }}" }
-            - { name: groups,      value: "{{ item.groups | default('') }}" }
-            - { name: site,        value: "{{ item.site }}" }
+            - { name: groups, value: "{{ item.groups | default('') }}" }
+            - { name: site, value: "{{ item.site }}" }
         status_code: [200, 201]
       loop: "{{ filtered_devices }}"
       register: vault_results
