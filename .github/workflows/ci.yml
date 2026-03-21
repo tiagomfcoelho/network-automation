@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Lint — Python
+  # ---------------------------------------------------------------------------
+  lint-python:
+    name: Python Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install flake8 pynetbox requests
+
+      - name: Lint with flake8
+        run: |
+          flake8 utils/ netmiko/ napalm/ \
+            --max-line-length=120 \
+            --ignore=E501,W503 \
+            --exclude=__pycache__
+
+  # ---------------------------------------------------------------------------
+  # Lint — Ansible
+  # ---------------------------------------------------------------------------
+  lint-ansible:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Ansible + lint
+        run: |
+          pip install ansible ansible-lint pynetbox
+
+      - name: Install Ansible collections
+        run: |
+          ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Lint playbooks
+        run: |
+          ansible-lint ansible/playbooks/ \
+            --exclude ansible/playbooks/configure_interfaces.yml \
+            -x yaml[line-length],name[casing]
+
+  # ---------------------------------------------------------------------------
+  # Validate — YAML syntax
+  # ---------------------------------------------------------------------------
+  validate-yaml:
+    name: YAML Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Validate YAML files
+        run: |
+          yamllint ansible/ \
+            -d "{extends: relaxed, rules: {line-length: {max: 120}}}"
