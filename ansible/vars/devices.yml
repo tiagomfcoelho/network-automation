@@ -1,20 +1,57 @@
 ---
 # devices.yml
 # Define all devices to be provisioned in Vaultwarden and Netbox
-# Usage: ansible-playbook ansible/playbooks/provision_devices.yml -e @ansible/vars/devices.yml
+# Passwords are stored in secrets.yml (encrypted with Ansible Vault)
+#
+# Usage:
+#   # First time — encrypt secrets
+#   ansible-vault encrypt ansible/vars/secrets.yml
+#
+#   # Provision all devices
+#   ansible-playbook ansible/playbooks/provision_devices.yml \
+#     -e @ansible/vars/devices.yml \
+#     -e @ansible/vars/secrets.yml \
+#     --ask-vault-pass
+#
+#   # Provision a single device
+#   ansible-playbook ansible/playbooks/provision_devices.yml \
+#     -e @ansible/vars/devices.yml \
+#     -e @ansible/vars/secrets.yml \
+#     -e "target_device=xrd-1" \
+#     --ask-vault-pass
 
 # YAML anchors for common configurations
-vaultlab_common: &vaultlab_common
+vaultlab_router: &vaultlab_router
   site: VaultLab
   site_slug: vaultlab
-  username: admin
-  password: autonetops
+  role: router
+  role_slug: router
+  username: "{{ vaultlab_username }}"
+  password: "{{ vaultlab_password }}"
   device_type: ceos-lab
   manufacturer: Arista
   manufacturer_slug: arista
+  vault_folder: VaultLab/Routers
+  groups: routers,core
+
+vaultlab_switch: &vaultlab_switch
+  site: VaultLab
+  site_slug: vaultlab
+  role: switch
+  role_slug: switch
+  username: "{{ vaultlab_username }}"
+  password: "{{ vaultlab_password }}"
+  device_type: ceos-lab
+  manufacturer: Arista
+  manufacturer_slug: arista
+  vault_folder: VaultLab/Switches
+  groups: switches,access
 
 devices:
-  # DevNetSandboxLab - unique device
+
+  # -----------------------------------------------------------------------
+  # DevNet Sandbox Lab — Cisco IOS XR (Always-On)
+  # -----------------------------------------------------------------------
   - name: xrd-1
     site: DevNetSandboxLab
     site_slug: devnetsandboxlab
@@ -24,41 +61,29 @@ devices:
     manufacturer: Cisco
     manufacturer_slug: cisco
     ip: 131.226.217.150
-    username: tiagocoelho17
-    password: el-54_bI7zIL
+    username: "{{ devnet_xrd1_username }}"
+    password: "{{ devnet_xrd1_password }}"
     vault_folder: DevNetSandboxLab/Routers
     groups: routers,iosxr
 
-  # VaultLab - Routers (share common config)
+  # -----------------------------------------------------------------------
+  # VaultLab — Arista cEOS Routers
+  # -----------------------------------------------------------------------
   - name: r1
-    <<: *vaultlab_common
-    role: router
-    role_slug: router
+    <<: *vaultlab_router
     ip: 172.20.20.11
-    vault_folder: VaultLab/Routers
-    groups: routers,core
 
   - name: r2
-    <<: *vaultlab_common
-    role: router
-    role_slug: router
+    <<: *vaultlab_router
     ip: 172.20.20.12
-    vault_folder: VaultLab/Routers
-    groups: routers,core
 
-  # VaultLab - Switches (share common config)
+  # -----------------------------------------------------------------------
+  # VaultLab — Arista cEOS Switches
+  # -----------------------------------------------------------------------
   - name: sw1
-    <<: *vaultlab_common
-    role: switch
-    role_slug: switch
+    <<: *vaultlab_switch
     ip: 172.20.20.21
-    vault_folder: VaultLab/Switches
-    groups: switches,access
 
   - name: sw2
-    <<: *vaultlab_common
-    role: switch
-    role_slug: switch
+    <<: *vaultlab_switch
     ip: 172.20.20.22
-    vault_folder: VaultLab/Switches
-    groups: switches,access
