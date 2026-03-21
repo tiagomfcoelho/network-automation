@@ -12,7 +12,7 @@ Usage:
 
     python3 connect_devices_netbox.py
     python3 connect_devices_netbox.py --site vaultlab --role router
-    python3 connect_devices_netbox.py --command "show version"
+    python3 connect_devices_netbox.py --site devnetsandboxlab --command "show version"
 """
 
 import argparse
@@ -31,15 +31,24 @@ NETMIKO_DEVICE_TYPE_MAP = {
     "iosv":           "cisco_ios",
     "iosvl2":         "cisco_ios",
     "csr1000v":       "cisco_ios",
+    "ios-xr":         "cisco_xr",       # IOS XR
+    "iosxr":          "cisco_xr",
     "nexus":          "cisco_nxos",
+    "nxos":           "cisco_nxos",
     "juniper":        "juniper_junos",
-    "generic":        "cisco_ios",  # default fallback
+    "junos":          "juniper_junos",
+    "arista-eos":     "arista_eos",
+    "eos":            "arista_eos",
+    "generic":        "cisco_ios",      # default fallback
 }
 
 
 def get_netmiko_device_type(device_type_slug: str) -> str:
     """Map Netbox device type slug to Netmiko device type."""
-    return NETMIKO_DEVICE_TYPE_MAP.get(device_type_slug, "cisco_ios")
+    result = NETMIKO_DEVICE_TYPE_MAP.get(device_type_slug, "cisco_ios")
+    if result == "cisco_ios" and device_type_slug not in NETMIKO_DEVICE_TYPE_MAP:
+        print(f"  [WARN] Unknown device type '{device_type_slug}' — defaulting to cisco_ios")
+    return result
 
 
 def connect_and_run(
@@ -49,6 +58,7 @@ def connect_and_run(
     password:    str,
     device_type: str,
     command:     str = "show ip interface brief",
+    port:        int = 22,
 ) -> str | None:
     """Connect to a device via Netmiko and run a command."""
     print(f"\n=> Connecting to {name} ({ip})...")
@@ -58,7 +68,7 @@ def connect_and_run(
         "host":        ip,
         "username":    username,
         "password":    password,
-        "port":        22,
+        "port":        port,
         "timeout":     10,
     }
 
@@ -80,14 +90,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Connect to devices using Netbox inventory + Vaultwarden credentials"
     )
-    parser.add_argument("--site",    default=None,                          help="Filter by site slug (e.g. vaultlab)")
-    parser.add_argument("--role",    default=None,                          help="Filter by role slug (e.g. router, switch)")
-    parser.add_argument("--command", default="show ip interface brief",     help="Command to run on each device")
+    parser.add_argument("--site",    default=None,                      help="Filter by site slug (e.g. vaultlab)")
+    parser.add_argument("--role",    default=None,                      help="Filter by role slug (e.g. router, switch)")
+    parser.add_argument("--command", default="show ip interface brief", help="Command to run on each device")
+    parser.add_argument("--port",    default=22, type=int,              help="SSH port (default: 22)")
     args = parser.parse_args()
 
     # Initialize clients
-    vault   = VaultClient()
-    netbox  = NetboxClient()
+    vault  = VaultClient()
+    netbox = NetboxClient()
 
     # Get devices from Netbox
     print(f"Fetching devices from Netbox (site={args.site}, role={args.role})...")
@@ -110,8 +121,10 @@ def main():
             continue
 
         # Get credentials from Vaultwarden
+        # Use vault_item_id if available (avoids ambiguity), otherwise use name
+        vault_key = device.get("vault_item_id") or name
         try:
-            username, password = vault.get_credentials(name)
+            username, password = vault.get_credentials(vault_key)
         except Exception as exc:
             print(f"  -> SKIP {name} — credentials not found in Vaultwarden: {exc}")
             results[name] = None
@@ -128,20 +141,21 @@ def main():
             password=password,
             device_type=device_type,
             command=args.command,
+            port=args.port,
         )
         results[name] = output
 
     # Summary
     print("\n=== Summary ===")
-    ok    = [n for n, o in results.items() if o is not None]
-    skip  = [n for n, o in results.items() if o is None]
+    ok   = [n for n, o in results.items() if o is not None]
+    fail = [n for n, o in results.items() if o is None]
 
     for name in ok:
         print(f"  ✓ {name}")
-    for name in skip:
+    for name in fail:
         print(f"  ✗ {name}")
 
-    print(f"\nTotal: {len(ok)} OK, {len(skip)} ERROR/SKIP")
+    print(f"\nTotal: {len(ok)} OK, {len(fail)} ERROR/SKIP")
 
 
 if __name__ == "__main__":
