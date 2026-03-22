@@ -16,3 +16,6 @@ ansible-pylibssh>=1.1.0
 # Ansible — install separately:
 # pip install ansible
 # ansible-galaxy collection install -r ansible/requirements.yml
+scrapli>=2024.1.30
+scrapli-community>=2024.1.30
+nornir-scrapli>=2024.1.30
