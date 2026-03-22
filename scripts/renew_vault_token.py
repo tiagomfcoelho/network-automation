@@ -18,7 +18,6 @@ Environment variables:
 
 import os
 import sys
-import requests
 from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -87,7 +86,7 @@ def main():
         success = renew_token(vault)
         sys.exit(0 if success else 1)
     else:
-        print(f"\nTTL above threshold — no renewal needed.")
+        print("\nTTL above threshold — no renewal needed.")
         sys.exit(0)
 
 

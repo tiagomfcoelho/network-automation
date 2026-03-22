@@ -30,8 +30,6 @@
         file: "{{ playbook_dir }}/../vars/interfaces/defaults.yml"
       when: host_vars_loaded is failed
 
-
-
     # -----------------------------------------------------------------------
     # Cisco IOS / IOS XE
     # -----------------------------------------------------------------------

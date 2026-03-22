@@ -27,13 +27,13 @@ class HCVaultClient:
 
     def __init__(
         self,
-        vault_addr:  Optional[str] = None,
+        vault_addr: Optional[str] = None,
         vault_token: Optional[str] = None,
-        mount:       Optional[str] = None,
+        mount: Optional[str] = None,
     ):
-        self.vault_addr  = (vault_addr  or os.environ.get("HC_VAULT_ADDR", "")).rstrip("/")
-        self.vault_token = vault_token  or os.environ.get("HC_VAULT_TOKEN")
-        self.mount       = mount        or os.environ.get("HC_VAULT_MOUNT", "network")
+        self.vault_addr = (vault_addr or os.environ.get("HC_VAULT_ADDR", "")).rstrip("/")
+        self.vault_token = vault_token or os.environ.get("HC_VAULT_TOKEN")
+        self.mount = mount or os.environ.get("HC_VAULT_MOUNT", "network")
 
         if not self.vault_addr:
             raise EnvironmentError(

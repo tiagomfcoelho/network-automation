@@ -117,7 +117,7 @@ def main():
 
     # Check current status
     status = get_vault_status()
-    print(f"\nVault status:")
+    print("\nVault status:")
     print(f"  Initialized: {status.get('initialized')}")
     print(f"  Sealed:      {status.get('sealed')}")
 
