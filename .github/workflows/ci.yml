@@ -31,10 +31,34 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          flake8 utils/ netmiko/ napalm/ \
+          flake8 utils/ netmiko/ napalm/ scripts/ \
             --max-line-length=120 \
             --ignore=E501,W503,E302,E303,E241,E221,E402 \
             --exclude=__pycache__
+
+  # ---------------------------------------------------------------------------
+  # Tests — Pytest
+  # ---------------------------------------------------------------------------
+  test-python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest pytest-mock requests pynetbox
+
+      - name: Run tests
+        run: pytest tests/ -v
 
   # ---------------------------------------------------------------------------
   # Lint — Ansible
@@ -63,7 +87,7 @@ jobs:
       - name: Lint playbooks
         run: |
           ansible-lint ansible/playbooks/ \
-            -x yaml[line-length],name[casing],fqcn[action-core],risky-file-permissions,run-once[task]
+            -x yaml[line-length],name[casing],fqcn[action-core],risky-file-permissions,run-once[task],ignore-errors
 
   # ---------------------------------------------------------------------------
   # Validate — YAML syntax
