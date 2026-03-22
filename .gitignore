@@ -25,3 +25,5 @@ ansible/vars/secrets.yml
 .vault_pass
 reports/
 backups/
+vault-unseal.env
+/etc/vault-unseal.env
