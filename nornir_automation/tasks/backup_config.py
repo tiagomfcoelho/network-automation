@@ -78,9 +78,10 @@ def main():
 
     # Initialize Nornir with HC Vault inventory
     inv = HCVaultInventory(site=args.site)
-    nr  = InitNornir(
+    nr = InitNornir(
         runner={"plugin": "threaded", "options": {"num_workers": 10}},
         logging={"enabled": False},
+        inventory={"plugin": "SimpleInventory", "options": {"host_file": "/tmp/empty_hosts.yaml"}},
     )
     nr.inventory = inv.load()
 
