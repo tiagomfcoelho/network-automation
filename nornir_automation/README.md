@@ -22,7 +22,7 @@ HashiCorp Vault (credentials + IP)
       Nornir Core
           ↓ (parallel threads)
    ┌──────┼──────┐
-  xrd-1  xrd-2  xrd-3   ← all connected simultaneously
+  cat8k  sw1   sw2   ← all connected simultaneously
 ```
 
 ## Setup
@@ -47,24 +47,39 @@ export HC_VAULT_TOKEN=your_vault_token
 
 ```bash
 # Show version on all devices in a site
-python3 nornir/tasks/collect_facts.py --site devnetsandboxlab
+python3 nornir_automation/tasks/collect_facts.py --site devnetsandboxlab
 
 # Custom command
-python3 nornir/tasks/collect_facts.py \
+python3 nornir_automation/tasks/collect_facts.py \
   --site devnetsandboxlab \
   --command "show ip interface brief"
 
 # Save output to reports/nornir/
-python3 nornir/tasks/collect_facts.py \
+python3 nornir_automation/tasks/collect_facts.py \
   --site devnetsandboxlab \
   --command "show version" \
   --save
 ```
 
+**Example output (Catalyst 8000):**
+```
+Found 1 device(s) — running in parallel...
+Command: show version
+
+Run: show version***************************************************************
+* cat8k ** changed : False *****************************************************
+vvvv Run: show version ** changed : False vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv INFO
+Cisco IOS XE Software, Version 17.15.04c
+...
+=== Summary ===
+  ✓ cat8k
+Total: 1 OK, 0 ERROR
+```
+
 ### Backup configurations
 
 ```bash
-python3 nornir/tasks/backup_config.py --site devnetsandboxlab
+python3 nornir_automation/tasks/backup_config.py --site devnetsandboxlab
 
 # Backups saved to: backups/<hostname>/<hostname>_<timestamp>.cfg
 ```
@@ -76,11 +91,11 @@ The `HCVaultInventory` plugin loads hosts directly from HashiCorp Vault KV v2.
 Each secret at `<mount>/<site>/<device>` must contain:
 
 | Field | Description | Example |
-|-------|-------------|---------|
+|-------|-------------|---------| 
 | `username` | SSH username | `admin` |
 | `password` | SSH password | `secret` |
-| `ip` | Management IP | `131.226.217.150` |
-| `device_type` | Platform slug | `cisco_xr` |
+| `ip` | Management IP or hostname | `10.10.20.148` |
+| `device_type` | Platform slug | `cisco_ios` |
 | `port` | SSH port | `22` |
 
 ## Supported Platforms
@@ -103,7 +118,7 @@ python3 netmiko/connect_devices.py --site devnetsandboxlab
 # Connects to devices one by one
 
 # Nornir — parallel
-python3 nornir/tasks/collect_facts.py --site devnetsandboxlab
+python3 nornir_automation/tasks/collect_facts.py --site devnetsandboxlab
 # Connects to all devices simultaneously
 ```
 
@@ -116,5 +131,7 @@ The DevNet IOS XR sandbox uses TACACS+ authentication which is incompatible
 with paramiko (the SSH library used by Netmiko/Nornir). The SSH native client
 works but paramiko cannot authenticate via TACACS+.
 
-**Workaround:** Use Nornir with local lab devices (cEOS, Nokia SR Linux)
-where password authentication is handled locally without TACACS+.
+**Tested with:** Cisco Catalyst 8000 (IOS XE 17.15) — fully working.
+
+**Workaround:** Use devices with local authentication (IOS XE Catalyst 8000,
+lab devices) or wait for Nornir support for `system` SSH transport.
