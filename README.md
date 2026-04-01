@@ -318,10 +318,3 @@ The DevNet IOS XR sandbox uses **TACACS+** authentication. Libraries that use `p
 | `NETBOX_TOKEN` | API token for Netbox | ✅ |
 | `NETBOX_URL` | URL of the Netbox instance | ✅ |
 | `HC_VAULT_SITE` | Default site filter for inventory | ❌ |
-
-## Author
-
-**R4Z0RD** — Network Engineer transitioning to Network Automation / DevNetOps
-
-- Self-hosted infrastructure: HashiCorp Vault, Netbox, Grafana, InfluxDB
-- Tested against Cisco IOS XE 17.15 (Catalyst 8000) and IOS XR 25.3.1 via DevNet Always-On Sandboxes
