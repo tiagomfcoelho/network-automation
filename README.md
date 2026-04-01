@@ -60,7 +60,7 @@ Network automation toolkit for managing and automating network devices using **N
 
 ```bash
 # Clone the repository
-git clone https://github.com/R4Z0RD/network-automation.git
+git clone https://github.com/tiagomfcoelho/network-automation.git
 cd network-automation
 
 # Run setup (installs all dependencies)
